@@ -10,12 +10,15 @@ public record User(
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         Integer id,
 
-        @Column(nullable = false)
+        @Column(name = "name", nullable = false)
         String name,
 
-        @Column(nullable = false)
+        @Column(name = "email", nullable = false)
         String email,
 
-        @Column(nullable = false)
-        String password
+        @Column(name = "password", nullable = false)
+        String password,
+
+        @Enumerated(value = EnumType.STRING)
+        Role role
 ) {}

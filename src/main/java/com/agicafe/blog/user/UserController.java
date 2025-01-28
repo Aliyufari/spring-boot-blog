@@ -19,16 +19,14 @@ public class UserController {
 
     @GetMapping("/")
     private Iterable<User> index(){
-        return userService.getAllusers();
+        return userService.getUsers();
     }
 
     @PostMapping("/")
     private ResponseEntity<Void> store(@RequestBody User user, UriComponentsBuilder ucb){
-        User newUser = new User(null, user.name(), user.email(), user.password());
+        User newUser = new User(null, user.name(), user.email(), user.password(), user.role());
         User savedUser = userService.createUser(newUser);
-        URI locationOfNewUser = ucb.path("/users/{id}")
-                .buildAndExpand(savedUser.id())
-                .toUri();
+        URI locationOfNewUser = ucb.path("/users/{id}").buildAndExpand(savedUser.id()).toUri();
         return ResponseEntity.created(locationOfNewUser).build();
     }
 
@@ -42,7 +40,7 @@ public class UserController {
     private ResponseEntity<Void> update(@PathVariable Integer id, @RequestBody User userUpdate){
         Optional<User> user = userService.getUser(id);
         if (user.isPresent()){
-            User updatedUser = new User(userUpdate.id(), userUpdate.name(), userUpdate.email(), userUpdate.password());
+            User updatedUser = new User(userUpdate.id(), userUpdate.name(), userUpdate.email(), userUpdate.password(), userUpdate.role());
             userService.updateUser(updatedUser);
             return ResponseEntity.noContent().build();
         }

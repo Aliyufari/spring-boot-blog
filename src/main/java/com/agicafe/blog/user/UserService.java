@@ -14,7 +14,7 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public List<User> getAllusers(){
+    public List<User> getUsers(){
         return userRepository.findAll();
     }
 
@@ -23,20 +23,21 @@ public class UserService {
     }
 
     public Optional<User> getUser(Integer id){
-        return userRepository.findById(id);
+        return Optional.ofNullable(userRepository.findById(id)
+                .orElseThrow(UserNotFoundException::new));
     }
 
     public void updateUser(User user){
         if (userRepository.existsById(user.id()))
             userRepository.save(user);
         else
-            throw new UserNotFoundException("User Not Found");
+            throw new UserNotFoundException();
     }
 
     public void deleteUser(Integer id){
         if (userRepository.existsById(id))
             userRepository.deleteById(id);
         else
-            throw new UserNotFoundException("User Not Found");
+            throw new UserNotFoundException();
     }
 }
