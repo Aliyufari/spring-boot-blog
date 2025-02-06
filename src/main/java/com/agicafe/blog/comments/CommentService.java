@@ -1,12 +1,16 @@
 package com.agicafe.blog.comments;
 
-import com.agicafe.blog.exceptions.CommentNotFoundException;
+import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
+@Transactional(rollbackOn = Exception.class)
 public class CommentService {
     private final CommentRepository commentRepository;
 
@@ -14,32 +18,30 @@ public class CommentService {
         this.commentRepository = commentRepository;
     }
 
-    public List<Comment> getComments(){
-        return commentRepository.findAll();
+    public Page<Comment> getComments(int page, int size){
+        return commentRepository.findAll(PageRequest.of(page, size));
     }
 
     public Comment createComment(Comment comment){
         return commentRepository.save(comment);
     }
 
-    public Optional<Comment> getComment(Integer id){
-        return Optional.ofNullable(commentRepository.findById(id)
-                .orElseThrow(CommentNotFoundException::new));
+    public Optional<Comment> getComment(UUID id){
+        return Optional.of(commentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Comment Not Found")));
     }
 
-    public void updateComment(Comment commentUpdate){
-        Optional<Comment> comment = commentRepository.findById(commentUpdate.id());
-        if (comment.isPresent())
-            commentRepository.save(commentUpdate);
-
-        throw new CommentNotFoundException();
+    public Comment updateComment(Comment commentUpdate){
+        if (commentRepository.existsById(commentUpdate.getId())) {
+            return commentRepository.save(commentUpdate);
+        }
+        throw new RuntimeException("Comment Not Found");
     }
 
-    public void deleteComment(Integer id){
-        Optional<Comment> comment = commentRepository.findById(id);
-        if (comment.isPresent())
-            commentRepository.deleteById(id);
-
-        throw new CommentNotFoundException();
+    public void deleteComment(UUID id){
+        if (!commentRepository.existsById(id)) {
+            throw new RuntimeException("Comment Not Found");
+        }
+        commentRepository.deleteById(id);
     }
 }

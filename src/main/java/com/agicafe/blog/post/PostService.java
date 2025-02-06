@@ -1,12 +1,17 @@
 package com.agicafe.blog.post;
 
-import com.agicafe.blog.exceptions.PostNotFoundException;
+import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
+@Transactional(rollbackOn = Exception.class)
 public class PostService {
 
     private final PostRepository postRepository;
@@ -15,32 +20,32 @@ public class PostService {
         this.postRepository = postRepository;
     }
 
-    public List<Post> getPosts(){
-        return postRepository.findAll();
+    public Page<Post> getPosts(int page, int size){
+        return postRepository.findAll(PageRequest.of(page, size));
     }
 
     public Post createPost(Post post){
         return postRepository.save(post);
     }
 
-    public Optional<Post> getPost(Integer id){
-        return Optional.ofNullable(postRepository.findById(id)
-                .orElseThrow(PostNotFoundException::new));
+    public Optional<Post> getPost(UUID id){
+        return Optional.of(postRepository.findById(id))
+                .orElseThrow(()-> new RuntimeException("Post Not Found!"));
     }
 
-    public void updatePost(Post post){
-        if (postRepository.existsById(post.id())){
-            postRepository.save(post);
+    public Post updatePost(Post post){
+        if (postRepository.existsById(post.getId())){
+           return postRepository.save(post);
         }
 
-        throw  new PostNotFoundException("Post Not Found!");
+        throw  new RuntimeException("Post Not Found!");
     }
 
-    public void deletePost(Integer id){
-        if (postRepository.existsById(id)){
-            postRepository.deleteById(id);
+    public void deletePost(UUID id){
+        if (!postRepository.existsById(id)) {
+            throw new RuntimeException("Post Not Found!");
         }
 
-        throw  new PostNotFoundException("Post Not Found!");
+        postRepository.deleteById(id);
     }
 }

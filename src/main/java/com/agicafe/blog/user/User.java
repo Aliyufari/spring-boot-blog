@@ -1,24 +1,44 @@
 package com.agicafe.blog.user;
 
+import com.agicafe.blog.post.Post;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.UuidGenerator;
+
+import java.util.List;
+import java.util.UUID;
 
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
 @Table(name = "users")
-public record User(
-
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
+public class User {
         @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        Integer id,
+        @UuidGenerator
+        @Column(name = "id", unique = true, updatable = false)
+        private UUID id;
 
         @Column(name = "name", nullable = false)
-        String name,
+        private String name;
 
         @Column(name = "email", nullable = false)
-        String email,
+        private String email;
 
         @Column(name = "password", nullable = false)
-        String password,
+        private String password;
 
         @Enumerated(value = EnumType.STRING)
-        Role role
-) {}
+        private Role role;
+
+        @OneToMany(mappedBy = "author")
+        @JsonIgnore
+        private List<Post> posts;
+
+        public User(User user) {
+        }
+}

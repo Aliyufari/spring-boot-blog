@@ -1,11 +1,20 @@
 package com.agicafe.blog.user;
 
+import com.agicafe.blog.payload.ApiResponse;
+import com.agicafe.blog.dtos.StoreUserRequest;
+import com.agicafe.blog.dtos.UpdateUserRequest;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/users")
@@ -17,43 +26,95 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/")
-    private Iterable<User> index(){
-        return userService.getUsers();
+    @GetMapping()
+    public ResponseEntity<ApiResponse<List<User>>> index(Pageable pageable){
+        Page<User> page = userService.getUsers(
+                PageRequest.of(
+                        pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        pageable.getSortOr(Sort.by(Sort.Direction.ASC, "name"))
+                ));
+
+        ApiResponse<List<User>> response = new ApiResponse<>(true, "Users fetched successfully", "users", page.getContent());
+
+        response.getData().put("meta", Map.of(
+                "currentPage", page.getNumber(),
+                "perPage", page.getSize(),
+                "totalItems", page.getTotalElements(),
+                "totalPages", page.getTotalPages()
+        ));
+
+        Map<String, String> links = new HashMap<>();
+        links.put("first", "/api/users?page=0");
+        links.put("last", "/api/users?page=" + (page.getTotalPages() - 1));
+
+        if (page.hasPrevious()) {
+            links.put("prev", "/api/users?page=" + (page.getNumber() - 1));
+        }
+        if (page.hasNext()) {
+            links.put("next", "/api/users?page=" + (page.getNumber() + 1));
+        }
+
+        response.getData().put("links", links);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @PostMapping("/")
-    private ResponseEntity<Void> store(@RequestBody User user, UriComponentsBuilder ucb){
-        User newUser = new User(null, user.name(), user.email(), user.password(), user.role());
-        User savedUser = userService.createUser(newUser);
-        URI locationOfNewUser = ucb.path("/users/{id}").buildAndExpand(savedUser.id()).toUri();
-        return ResponseEntity.created(locationOfNewUser).build();
+    @PostMapping()
+    private ResponseEntity<ApiResponse<User>> store(@Valid @RequestBody StoreUserRequest request, UriComponentsBuilder ucb){
+        User user = new User();
+        user.setName(request.name());
+        user.setEmail(request.email());
+//        user.setPassword(passwordEncorder.encode(request.password()));
+        user.setPassword(request.password());
+        user.setRole(request.role() != null ? request.role() : Role.USER);
+
+        User savedUser = userService.createUser(user);
+        URI locationOfNewUser = ucb.path("/users/{id}").buildAndExpand(savedUser.getId()).toUri();
+        ApiResponse<User> response = new ApiResponse<>(true, "User created successfully", "user", savedUser);
+        return ResponseEntity.created(locationOfNewUser).body(response);
     }
 
     @GetMapping("/{id}")
-    private ResponseEntity<User> show(@PathVariable Integer id){
-        Optional<User> user = userService.getUser(id);
-        return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    private ResponseEntity<ApiResponse<User>> show(@PathVariable UUID id){
+        return userService.getUser(id)
+                .map(user -> {
+                    ApiResponse<User> response = new ApiResponse<>(true, "User fetched successfully", "user", user);
+                    return ResponseEntity.ok(response);
+                })
+                .orElseGet(() -> {
+                    ApiResponse<User> response = new ApiResponse<>(false, "User Not Found", "user", null);
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+                });
     }
 
     @PutMapping("/{id}")
-    private ResponseEntity<Void> update(@PathVariable Integer id, @RequestBody User userUpdate){
-        Optional<User> user = userService.getUser(id);
-        if (user.isPresent()){
-            User updatedUser = new User(userUpdate.id(), userUpdate.name(), userUpdate.email(), userUpdate.password(), userUpdate.role());
-            userService.updateUser(updatedUser);
-            return ResponseEntity.noContent().build();
+    private ResponseEntity<ApiResponse<User>> update(@Valid @RequestBody UpdateUserRequest request, @PathVariable UUID id){
+        Optional<User> optionalUser = userService.getUser(id);
+        if (optionalUser.isEmpty()){
+            ApiResponse<User> response = new ApiResponse<>(false, "User not Found", null, null);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
-        return ResponseEntity.notFound().build();
+
+        User user = optionalUser.get();
+        user.setName(request.name());
+        user.setEmail(request.email());
+        user.setRole(request.role());
+
+        User updatedUser = userService.updateUser(user);
+        ApiResponse<User> response = new ApiResponse<>(true, "User updated successfully", "user", updatedUser);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
-    private ResponseEntity<Void> destroy(@PathVariable Integer id){
-        Optional<User> user = userService.getUser(id);
-        if (user.isPresent()){
-            userService.deleteUser(user.get().id());
-            return ResponseEntity.noContent().build();
+    private ResponseEntity<ApiResponse<Void>> destroy(@PathVariable UUID id){
+        if (userService.getUser(id).isEmpty()){
+            ApiResponse<Void> response = new ApiResponse<>(false, "User not Found", null, null);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
-        return ResponseEntity.notFound().build();
+
+        userService.deleteUser(id);
+        ApiResponse<Void> response = new ApiResponse<>(true, "User deleted successfully", null, null);
+        return ResponseEntity.ok(response);
     }
 }

@@ -2,23 +2,37 @@ package com.agicafe.blog.comments;
 
 import com.agicafe.blog.post.Post;
 import com.agicafe.blog.user.User;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.UuidGenerator;
+
+import java.util.UUID;
 
 @Entity
 @Table(name = "comments")
-public record Comment(
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class Comment{
         @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        Integer id,
+        @UuidGenerator
+        @Column(name = "id", unique = true, updatable = false)
+        private UUID id;
 
         @Column(name = "body", nullable = false)
-        String body,
+        private String body;
 
         @ManyToOne
         @JoinColumn(name = "post_id", nullable = false)
-        Post post,
+        private Post post;
 
         @ManyToOne
         @JoinColumn(name = "author_id", nullable = false)
-        User author
-) {}
+        private User author;
+}

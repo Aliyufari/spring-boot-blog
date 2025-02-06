@@ -1,22 +1,33 @@
 package com.agicafe.blog.post;
 
 import com.agicafe.blog.user.User;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.UuidGenerator;
+
+import java.util.UUID;
 
 @Entity
 @Table(name = "posts")
-public record Post(
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+public class Post{
       @Id
-      @GeneratedValue(strategy = GenerationType.IDENTITY)
-      Integer id,
+      @UuidGenerator
+      @Column(name = "id", unique = true, updatable = false)
+      private UUID id;
 
       @Column(name = "title", nullable = false)
-      String title,
+      private String title;
 
       @Column(name = "body", nullable = false)
-      String body,
+      private String body;
 
       @ManyToOne
       @JoinColumn(name = "author_id", nullable = false)
-      User author
-) {}
+      @JsonBackReference
+      private User author;
+}
