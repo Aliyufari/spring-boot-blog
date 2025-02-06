@@ -27,36 +27,13 @@ public class UserController {
     }
 
     @GetMapping()
-    public ResponseEntity<ApiResponse<List<User>>> index(Pageable pageable){
-        Page<User> page = userService.getUsers(
-                PageRequest.of(
-                        pageable.getPageNumber(),
-                        pageable.getPageSize(),
-                        pageable.getSortOr(Sort.by(Sort.Direction.ASC, "name"))
-                ));
+    public ResponseEntity<ApiResponse<List<User>>> index(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size
+    ){
+        Page<User> pages = userService.getUsers(page, size);
 
-        ApiResponse<List<User>> response = new ApiResponse<>(true, "Users fetched successfully", "users", page.getContent());
-
-        response.getData().put("meta", Map.of(
-                "currentPage", page.getNumber(),
-                "perPage", page.getSize(),
-                "totalItems", page.getTotalElements(),
-                "totalPages", page.getTotalPages()
-        ));
-
-        Map<String, String> links = new HashMap<>();
-        links.put("first", "/api/users?page=0");
-        links.put("last", "/api/users?page=" + (page.getTotalPages() - 1));
-
-        if (page.hasPrevious()) {
-            links.put("prev", "/api/users?page=" + (page.getNumber() - 1));
-        }
-        if (page.hasNext()) {
-            links.put("next", "/api/users?page=" + (page.getNumber() + 1));
-        }
-
-        response.getData().put("links", links);
-
+        ApiResponse<List<User>> response = new ApiResponse<>(true, "Users fetched successfully", "users", pages);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

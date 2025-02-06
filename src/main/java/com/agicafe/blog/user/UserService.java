@@ -2,7 +2,9 @@ package com.agicafe.blog.user;
 
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,8 +20,8 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public Page<User> getUsers(Pageable pageable) {
-        return userRepository.findAll(pageable);
+    public Page<User> getUsers(int page, int size) {
+        return userRepository.findAll(PageRequest.of(page, size, Sort.by("name")));
     }
 
     public User createUser(User user){
@@ -33,16 +35,16 @@ public class UserService {
     }
 
     public User updateUser(User user){
-        if (userRepository.existsById(user.getId()))
-           return userRepository.save(user);
-        else
+        if (!userRepository.existsById(user.getId())){
             throw new RuntimeException("User Not Found");
+        }
+        return userRepository.save(user);
     }
 
     public void deleteUser(UUID id){
-        if (userRepository.existsById(id))
-            userRepository.deleteById(id);
-        else
+        if (!userRepository.existsById(id)){
             throw new RuntimeException("User Not Found");
+        }
+        userRepository.deleteById(id);
     }
 }
