@@ -8,8 +8,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -31,6 +33,10 @@ public class Comment{
         @ManyToOne
         @JoinColumn(name = "post_id", nullable = false)
         private Post post;
+
+        @Column(name = "created_at", nullable = false, updatable = false)
+        @CreationTimestamp
+        private LocalDateTime createdAt;
 
         @ManyToOne
         @JoinColumn(name = "author_id", nullable = false)
